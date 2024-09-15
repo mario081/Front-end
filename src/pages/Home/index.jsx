@@ -1,11 +1,12 @@
 import { useEffect, useState, useRef } from 'react'
 import './style.css'
-import Trash from '../../assets/lixo.svg'
 import api from '../../services/api'
+import { FaTrash, FaEdit } from "react-icons/fa";
 
 function Home() {
 
   const [users, setUsers] = useState([])
+  const [editarUser, setEditarUser] = useState(null)
 
   const inputName = useRef()
   const inputAge = useRef()
@@ -20,19 +21,45 @@ function Home() {
 
   async function creatUsers() {
 
-    await api.post('/usuarios', {
-      name: inputName.current.value,
-      age: inputAge.current.value,
-      email: inputEmail.current.value
-    })
+    if (!inputName.current.value.trim() ||
+      !inputAge.current.value.trim() ||
+      (!editUser && !inputEmail.current.value.trim())
+    ) {
+      alert('Por favor, preencha todos os campos.')
+      return;
+    }
+
+    if (editarUser) {
+      await api.put(`/usuarios/${editarUser}`, {
+        name: inputName.current.value,
+        age: inputAge.current.value,
+      })
+      setEditarUser(null);
+    } else {
+      await api.post('/usuarios', {
+        name: inputName.current.value,
+        age: inputAge.current.value,
+        email: inputEmail.current.value
+      })
+    }
     getUsers()
+
+    inputName.current.value = ''
+    inputAge.current.value = ''
+    inputEmail.current.value = ''
   }
 
   async function deleteUsers(id) {
     await api.delete(`/usuarios/${id}`)
 
     getUsers()
-    
+
+  }
+
+  function editUser(user) {
+    inputName.current.value = user.name
+    inputAge.current.value = user.age
+    setEditarUser(user.id)  // Define o ID do usuário que está sendo editado
   }
 
   useEffect(() => {
@@ -43,11 +70,16 @@ function Home() {
 
     <div className='container'>
       <form>
-        <h1>Cadastro de Usuário</h1>
+        <h1>{editarUser ? 'Alterar Usuário' : 'Cadastro de Usuário'}</h1>
         <input placeholder='Nome' name='nome' type='text' ref={inputName} />
         <input placeholder='Idade' name='idade' type='number' ref={inputAge} />
-        <input placeholder='E-mail' name='email' type='email' ref={inputEmail} />
-        <button type='button' onClick={creatUsers}>Cadastrar</button>
+        {!editarUser && (
+          <input placeholder='E-mail' name='email' type='email' ref={inputEmail} />
+        )}
+
+        <button type='button' onClick={creatUsers}>
+          {editarUser ? 'Alterar Cadastro' : 'Cadastrar'}
+        </button>
       </form>
 
       {users.map((user) => (
@@ -57,9 +89,14 @@ function Home() {
             <p>idade: <span>{user.age}</span></p>
             <p>Email: <span>{user.email}</span></p>
           </div>
-          <button onClick={() => deleteUsers(user.id)}>
-            <img src={Trash} />
-          </button>
+          <div className='conterinerButton'>
+            <button onClick={() => editUser(user)}>
+              <FaEdit />
+            </button>
+            <button onClick={() => deleteUsers(user.id)}>
+              <FaTrash />
+            </button>
+          </div>
         </div>
       ))}
 
